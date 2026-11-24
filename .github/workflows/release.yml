@@ -21,7 +21,7 @@ jobs:
             asset: homenet-watch-windows-x86_64.exe
           - os: ubuntu-22.04
             asset: homenet-watch-linux-x86_64
-          - os: macos-14
+          - os: macos-15
             asset: homenet-watch-macos-universal
     runs-on: ${{ matrix.os }}
     env:
