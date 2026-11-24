@@ -1,0 +1,9 @@
+[package]
+name = "webbrowser"
+version = "1.0.3"
+edition = "2021"
+description = "Small local stand-in: opens a link with the system's default handler (avoids a system import library this machine's toolchain lacks)."
+license = "MIT OR Apache-2.0"
+
+[lib]
+path = "src/lib.rs"

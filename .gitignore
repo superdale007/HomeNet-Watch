@@ -1,0 +1,3 @@
+# Build output and test pictures (not part of the source)
+/target
+/shots

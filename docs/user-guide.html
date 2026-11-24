@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HomeNet Watch by DDID — User Guide</title>
+<style>
+  :root { --bg:#0e141f; --card:#172131; --hi:#202d42; --border:#253348; --text:#dce3ee; --muted:#8a97ab; --faint:#556276; --gold:#e9b63b; --blue:#4c9aff; --green:#34c77b; --amber:#f2992e; --red:#ef5350; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 "Segoe UI", -apple-system, Helvetica, Arial, sans-serif; }
+  .wrap { display:flex; max-width:1180px; margin:auto; }
+  nav { position:sticky; top:0; align-self:flex-start; width:250px; height:100vh; overflow:auto; padding:28px 18px; border-right:1px solid var(--border); background:#111926; flex-shrink:0; }
+  nav .brand { font-weight:700; font-size:18px; } nav .by { color:var(--gold); font-size:13px; margin-bottom:18px; }
+  nav a { display:block; color:var(--muted); text-decoration:none; padding:4px 8px; border-radius:6px; font-size:14px; }
+  nav a:hover { background:var(--card); color:var(--text); }
+  nav .sub { padding-left:20px; font-size:13px; }
+  main { padding:34px 44px 80px; max-width:900px; }
+  h1 { font-size:32px; margin:0 0 4px; } h2 { margin-top:46px; padding-top:10px; border-top:1px solid var(--border); font-size:24px; }
+  h3 { margin-top:28px; font-size:18px; color:var(--gold); }
+  p, li { color:var(--text); } .muted { color:var(--muted); } a { color:var(--blue); }
+  .lead { color:var(--muted); font-size:17px; }
+  .tip, .warn, .note { border-radius:10px; padding:12px 16px; margin:14px 0; border:1px solid var(--border); background:var(--card); }
+  .tip { border-left:4px solid var(--green); } .warn { border-left:4px solid var(--amber); } .note { border-left:4px solid var(--blue); }
+  .tip b:first-child, .warn b:first-child, .note b:first-child { display:block; margin-bottom:2px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin:12px 0; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid #22304a; vertical-align:top; font-size:15px; }
+  th { color:var(--muted); font-weight:500; }
+  .k { display:inline-block; background:var(--hi); border:1px solid var(--border); border-radius:6px; padding:0 7px; font-size:14px; white-space:nowrap; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  code { background:var(--hi); border-radius:5px; padding:1px 6px; font-size:14px; }
+  ol li, ul li { margin:4px 0; }
+  footer { margin-top:50px; color:var(--faint); font-size:13px; }
+  @media (max-width: 860px) { nav { display:none; } main { padding:24px; } }
+  @media print { nav { display:none; } body { background:#fff; color:#000; } p, li, td { color:#000; } .tip,.warn,.note,table { background:#fff; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <div class="brand">HomeNet Watch</div>
+  <div class="by">by DDID · User Guide</div>
+  <a href="#welcome">Welcome</a>
+  <a href="#install">Installing</a>
+  <a href="#first">First start</a>
+  <a href="#tour">The pages</a>
+  <a class="sub" href="#dashboard">Dashboard</a>
+  <a class="sub" href="#devices">Devices</a>
+  <a class="sub" href="#map">Network map</a>
+  <a class="sub" href="#traffic">Traffic</a>
+  <a class="sub" href="#apps">Apps &amp; sites</a>
+  <a class="sub" href="#insights">Insights</a>
+  <a class="sub" href="#speed">Speed test</a>
+  <a class="sub" href="#performance">Performance (NAS)</a>
+  <a class="sub" href="#alerts">Alerts</a>
+  <a class="sub" href="#reports">Reports</a>
+  <a class="sub" href="#settings">Settings</a>
+  <a class="sub" href="#about">About</a>
+  <a href="#nas">Setting up your NAS</a>
+  <a href="#alert-types">Alert types explained</a>
+  <a href="#backup">Backup, restore, new computer</a>
+  <a href="#updates">Updates</a>
+  <a href="#privacy">Privacy</a>
+  <a href="#trouble">Troubleshooting</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+<main>
+
+<h1 id="welcome">HomeNet Watch User Guide</h1>
+<p class="lead">Keep an eye on every device at home, see what your computer talks to on the internet, and get plain-language alerts when something changes.</p>
+<p>HomeNet Watch is made by DDID — <a href="https://daledumbsitdown.com">DaleDumbsITDown.com</a>. It runs on Windows, macOS and Linux. Everything it records stays on your computer.</p>
+<ul>
+  <li><b>Your home network:</b> finds every device, checks it's online and how quickly it answers, draws a map, and alerts you when something drops off, slows down or appears for the first time.</li>
+  <li><b>Your computer's internet use:</b> live and past upload/download, which programs connect where, countries on a world map, and who made each program.</li>
+  <li><b>Your NAS:</b> storage space, disk health, temperatures, processor and traffic for Synology, QNAP and UGREEN boxes (and routers or computers that share stats).</li>
+  <li><b>Extras:</b> plain-language insights, a speed test, weekly reports, backup and restore.</li>
+</ul>
+
+<h2 id="install">Installing</h2>
+<p>Download the file for your computer from the project's <b>Releases</b> page on GitHub:</p>
+<table>
+  <tr><th>Your computer</th><th>File</th><th>How to start it</th></tr>
+  <tr><td>Windows 10 / 11</td><td><code>homenet-watch-windows-x86_64.exe</code></td><td>Put it in a folder of your own (for example <i>Documents\HomeNet Watch</i>) and double-click it.</td></tr>
+  <tr><td>Mac (Intel or Apple silicon)</td><td><code>homenet-watch-macos-universal</code></td><td>In Terminal: <code>chmod +x homenet-watch-macos-universal</code>, then right-click the file → <b>Open</b>.</td></tr>
+  <tr><td>Linux (64-bit PC)</td><td><code>homenet-watch-linux-x86_64</code></td><td><code>chmod +x homenet-watch-linux-x86_64</code>, then run it. Needs <code>ping</code> and <code>curl</code> (installed on almost every system).</td></tr>
+</table>
+<div class="warn"><b>"Windows protected your PC" or a Mac security message</b>
+HomeNet Watch isn't code-signed yet, so the first time you open it Windows may show a blue warning: click <b>More info → Run anyway</b>. On a Mac, right-click → <b>Open</b>, or go to <b>System Settings → Privacy &amp; Security</b> and click <b>Open Anyway</b>. You only need to do this once.</div>
+<div class="tip"><b>Tip: keep it out of Program Files</b>
+If the program sits in a folder of your own, it can update itself with one click. In protected folders like <i>Program Files</i> it can't replace its own file, so you'd download updates by hand.</div>
+
+<h2 id="first">First start</h2>
+<ol>
+  <li>HomeNet Watch finds your router and starts <b>looking for devices</b> on your home network. This takes about 20–40 seconds; a progress bar shows at the top right.</li>
+  <li>Every device it finds gets a name (from the network, or something like "Device .42"), a guessed type (phone, TV, printer, NAS…) and starts being checked every 30 seconds.</li>
+  <li>An <b>Internet</b> entry checks a public address (1.1.1.1) so you can tell your internet is down even when the router is fine.</li>
+  <li>Your computer's own traffic and programs start being recorded right away; the history fills in while the app is open.</li>
+</ol>
+<div class="note"><b>Phones, tablets and laptops</b>
+These come and go and sleep a lot, so their "went offline" alerts start switched <b>off</b>. You can turn alerts on for any device in its details.</div>
+<p>Under <b>Your network</b> at the bottom left you always see this computer's address, your router's address, your <b>outside (internet) address</b>, and the current download/upload speed.</p>
+
+<h2 id="tour">The pages</h2>
+
+<h3 id="dashboard">Dashboard</h3>
+<p>The overview: whether the internet is connected, how many devices are online, which need attention, and which are offline. Click a tile to jump to those devices. Below that are the internet and router response times (30 minutes, 1 hour or 6 hours), a device-status ring, a <b>Needs attention</b> list and the most recent alerts.</p>
+<p>Colours used everywhere: <span class="dot" style="background:var(--green)"></span>online <span class="dot" style="background:var(--amber)"></span>slow or partly answering <span class="dot" style="background:var(--red)"></span>offline <span class="dot" style="background:var(--blue)"></span>checking <span class="dot" style="background:#6b778a"></span>paused.</p>
+
+<h3 id="devices">Devices</h3>
+<p>Every device in one list. Search by name, address or maker; filter by <b>Online</b>, <b>Needs attention</b>, <b>Offline</b> or by <b>room</b>; click a column title to sort. <span class="k">+ Add device</span> watches something the scan didn't find, even outside your home (a website or game server).</p>
+<p>Click a device to open its <b>details panel</b> on the right:</p>
+<ul>
+  <li><b>Check now / Pause / Remove.</b> Pausing stops checks and alerts (for example while a device is away for repair).</li>
+  <li><b>Response:</b> current, average, best and worst response time, plus a strip of recent checks (green answered, amber slow, red missed).</li>
+  <li><b>Details:</b> rename it, choose its type, set a <b>room / group</b> (like "Office"), and see its address, hardware address, maker, first/last seen, uptime and outages.</li>
+  <li><b>What to watch:</b>
+    <ul>
+      <li><i>Answers to ping:</i> the normal "are you there?" check.</li>
+      <li><i>Check it is present:</i> for devices that ignore ping (many phones): it asks the device for its hardware address instead.</li>
+      <li><i>Alert me…:</i> whether this device may raise alerts.</li>
+      <li><i>Services (ports):</i> check a specific service, like 80 (web page) or 445 (file sharing). Ports seen during the last scan are offered as one-click buttons.</li>
+      <li><i>Check a web page loads:</i> fetches a page (plain http) and can require certain words on it.</li>
+      <li><i>Check it can look up web addresses (DNS):</i> useful for your router or the Internet entry.</li>
+      <li><i>System stats (SNMP):</i> read storage, disks, temperature, processor and traffic; see <a href="#nas">Setting up your NAS</a>.</li>
+    </ul></li>
+  <li><b>Recent events</b> for this device, and your own <b>notes</b>.</li>
+</ul>
+
+<h3 id="map">Network map</h3>
+<p>Internet at the top, your router below it, and every device in rows underneath, coloured by status. Offline devices get a dashed red line. Drag devices to arrange them; <span class="k">Arrange automatically</span> puts everything back. Click a device for its details.</p>
+
+<h3 id="traffic">Traffic</h3>
+<p>How much <b>this computer</b> downloads and uploads: right now, today, and over the last 7 days compared with the week before.</p>
+<ul>
+  <li><b>Live:</b> the last 5 minutes, download above the line, upload below.</li>
+  <li><b>History:</b> choose 1 hour, 6 hours, 24 hours, 7 days or 14 days. Drag the <b>Timeline</b> slider to look back in time; <span class="k">Now</span> jumps back. Hover a bar for exact numbers.</li>
+</ul>
+<p class="muted">History is recorded while HomeNet Watch is open and kept for 14 days.</p>
+
+<h3 id="apps">Apps &amp; sites</h3>
+<p>Which programs on this computer use the internet, and where they connect. Four tabs:</p>
+<ul>
+  <li><b>Programs:</b> each program with its <b>trust</b> status (signed by its maker, part of the operating system, not signed, or trusted by you), how many connections are open now, today and in total, and the data it used.</li>
+  <li><b>Destinations:</b> every internet place contacted, with its name, <b>category</b> (Advertising, Analytics, Content delivery, Updates, Cloud, Social, Streaming, Gaming), country, programs and ports.</li>
+  <li><b>Countries:</b> a world map of where traffic goes (turn on country lookup first; see <a href="#privacy">Privacy</a>).</li>
+  <li><b>Connections now:</b> live list of open connections.</li>
+</ul>
+<p>Click any program or destination for its details. For a program you'll see where it lives, what started it, who signed it, its <b>fingerprint (SHA-256)</b> and the places it connects to. <span class="k">Trust this version</span> remembers the fingerprint: if the program file ever changes (for example it's tampered with), you get an alert. After a normal update, simply trust the new version.</p>
+<div class="note"><b>Data per program</b>
+On Windows, counting data per program needs administrator rights: click <span class="k">Restart as administrator</span>. Without it, connections are still counted. On Mac and Linux, connection counts are shown.</div>
+<p><span class="k">Save as spreadsheet</span> writes the programs and destinations as two CSV files to your Documents folder.</p>
+
+<h3 id="insights">Insights</h3>
+<p>What stands out, in plain words:</p>
+<ul>
+  <li><b>Worth a closer look:</b> programs that changed since you trusted them, aren't signed, run from odd places like Downloads or Temp, talk to many countries, or check in with the same place like clockwork.</li>
+  <li><b>What changed since yesterday:</b> new programs, new internet places and countries, new devices at home, devices not seen lately, and today's activity compared with yesterday. (On the first day everything is new, so you'll see a summary instead.)</li>
+  <li><b>Phoning home:</b> programs that went online in many different hours of the day.</li>
+  <li><b>Ads &amp; tracking:</b> programs contacting advertising or analytics services.</li>
+</ul>
+<p>Click an item to open the program, destination or device.</p>
+
+<h3 id="speed">Speed test</h3>
+<p>Press <span class="k">Start test</span> to measure response time, download and upload using Cloudflare's public speed test. A test takes about 20 seconds and uses roughly 50–200 MB of data. Results are kept under <b>Recent results</b>.</p>
+<div class="tip"><b>Getting a true reading</b>
+Pause big downloads and streaming first. For your connection's full speed, test from a computer plugged into the router with a cable.</div>
+
+<h3 id="performance">Performance (NAS)</h3>
+<p>One card per device that shares its stats: processor, memory and temperature gauges, <b>storage</b> (volumes show free space; storage pools show how much is assigned to volumes, and a fully assigned pool is normal), each <b>disk</b> with model, temperature and health, network traffic and the last hour's trend. Problems such as a failing disk, a degraded storage pool, a full volume or high temperature appear at the top of the card and as alerts.</p>
+<p><span class="k">Details</span> opens the device; <span class="k">✖ Remove</span> stops reading its stats (it stays in Devices). Add devices with <b>Read stats from a device</b> at the bottom.</p>
+
+<h3 id="alerts">Alerts</h3>
+<p>Everything that happened, newest first. Filter by <b>All</b>, <b>Not seen yet</b> or <b>Critical</b>. Click an alert to read <b>what it means</b>, <b>what you can do</b>, and (for security alerts) its <b>MITRE ATT&amp;CK</b> reference. From there you can open the device or <span class="k">Mute alerts like this</span>.</p>
+<p>When something critical happens (like a device going offline), a <b>red bar</b> appears across the top until you click <span class="k">View alerts</span> or <span class="k">Mark as seen</span>. HomeNet Watch can also play a sound and flash its taskbar/Dock icon (see Settings).</p>
+<p>The <b>Tuning</b> tab shows, for each type of alert, how many arrived in the last 30 days and how many you actually opened. Types you never open are good candidates to mute; muted alerts are still recorded, just hidden and silent.</p>
+
+<h3 id="reports">Reports</h3>
+<p>Availability of every device (how often it answered), average and worst response, outages and total time offline.</p>
+<ul>
+  <li><span class="k">This week's report</span> saves a standalone web page to your Documents folder and opens it: usage compared with last week, busiest programs, what's new, countries, alerts and speed tests. It works offline and can be shared.</li>
+  <li><span class="k">Save as spreadsheet (CSV)</span> exports the device table.</li>
+</ul>
+
+<h3 id="settings">Settings</h3>
+<table>
+  <tr><th>Section</th><th>What you can set</th></tr>
+  <tr><td>Checking</td><td>How often devices are checked (default every 30 s), how long to wait for an answer, and monitoring on/off.</td></tr>
+  <tr><td>Alerts</td><td>When a device counts as slow (default 150 ms, judged over 3 checks in a row), how many missed checks mean offline (default 2), and alerts for new devices.</td></tr>
+  <tr><td>When something goes wrong</td><td>Warning sound, flashing the taskbar/Dock icon, and <b>quiet hours</b> (no sound or flashing, for example 22:00–07:00).</td></tr>
+  <tr><td>NAS &amp; system stats</td><td>How often stats are read, and warning limits: volume fullness (90%), disk temperature (60 °C), the NAS's own temperature (70 °C) and processor load (90%).</td></tr>
+  <tr><td>Finding devices</td><td>Which addresses to scan (normally your whole home network), how often to look for new devices (default every 6 hours), and <span class="k">Scan now</span>.</td></tr>
+  <tr><td>Internet destinations &amp; devices</td><td>Country lookup on/off, and after how many hours a missing device is reported (default 24).</td></tr>
+  <tr><td>Backup &amp; restore</td><td>See <a href="#backup">below</a>.</td></tr>
+  <tr><td>Your data</td><td>Where everything is stored, and <span class="k">Forget all devices and history</span> to start over.</td></tr>
+</table>
+
+<h3 id="about">About</h3>
+<p>Version and build date, <span class="k">Check for updates</span>, the <b>What's new</b> list, privacy details, the glossary, and ways to support DDID (PayPal @dalemeredith and Ko-fi ko-fi.com/superdale).</p>
+
+<h2 id="nas">Setting up your NAS</h2>
+<p>NAS boxes share their stats through <b>SNMP</b>, which is usually switched off. Turn it on in the NAS first:</p>
+<table>
+  <tr><th>NAS</th><th>Where</th></tr>
+  <tr><td>Synology (DSM)</td><td>Control Panel → Terminal &amp; SNMP → <b>SNMP</b> tab → tick <i>Enable SNMP service</i>.</td></tr>
+  <tr><td>QNAP (QTS)</td><td>Control Panel → Network &amp; File Services → <b>SNMP</b> → enable the SNMP service.</td></tr>
+  <tr><td>UGREEN (UGOS)</td><td>In the Control Panel, find the <b>SNMP</b> setting (under network or services) and switch it on.</td></tr>
+</table>
+<p>Then choose how HomeNet Watch signs in, and enter <b>the same settings</b> in the NAS's details panel in HomeNet Watch (Devices → click the NAS → <i>System stats</i>):</p>
+<ul>
+  <li><b>v1 / v2c (simple):</b> a "community" word, usually <code>public</code>. Easy, but sent unencrypted on your home network.</li>
+  <li><b>v3 (secure):</b> a user name with an <b>authentication</b> type (MD5, SHA-1 or SHA-256) and password, and optional <b>privacy</b> (encryption) with DES or AES-128 and a second password. Use AES and SHA where you can.</li>
+</ul>
+<p>Within a minute the NAS appears on the <b>Performance</b> page. If it doesn't, the details panel shows why (for example "wrong authentication password or protocol" or "the device doesn't know this SNMP v3 user name").</p>
+<div class="note"><b>Your passwords</b>
+On Windows, SNMP v3 passwords are saved encrypted for your Windows account. On Mac and Linux they're kept in your private settings file, readable only by you. Backups never contain them.</div>
+
+<h2 id="alert-types">Alert types explained</h2>
+<table>
+  <tr><th>Alert</th><th>What it means</th><th>What to do</th></tr>
+  <tr><td>Device went offline</td><td>It stopped answering: switched off, unplugged, out of Wi-Fi range or stuck.</td><td>Check power and connection; restart it. Several at once? Check the router.</td></tr>
+  <tr><td>Device back online</td><td>It's answering again.</td><td>Nothing. If it happens often, check its Wi-Fi signal.</td></tr>
+  <tr><td>Slow responses</td><td>It keeps answering slower than your limit.</td><td>Move it closer to the router or look for something using lots of bandwidth.</td></tr>
+  <tr><td>Service stopped</td><td>A service you watch (port, web page) stopped answering.</td><td>Check the device's settings or app.</td></tr>
+  <tr><td>New device joined</td><td>Something new connected to your network.</td><td>Recognise it? Give it a name. If not, change your Wi-Fi password.</td></tr>
+  <tr><td>Device not seen lately</td><td>A known device hasn't been seen for a day.</td><td>Remove it if it's gone, otherwise check it's on.</td></tr>
+  <tr><td>Device changed address</td><td>A known device came back with a new address. Phones do this for privacy.</td><td>Usually nothing; its name and settings were kept.</td></tr>
+  <tr><td>Router changed</td><td>Your router's address changed.</td><td>Expected after a router swap. If you changed nothing, restart the router and check connected devices.</td></tr>
+  <tr><td>Possible router impersonation</td><td>Another device answers for the router's address (ARP spoofing), a way to secretly read traffic.</td><td>Disconnect unknown devices, restart the router, change the Wi-Fi password.</td></tr>
+  <tr><td>New open port</td><td>A device started offering a new network service.</td><td>Fine if you just set something up; otherwise turn off services you don't use.</td></tr>
+  <tr><td>Web page / name lookup check</td><td>A page or DNS check you set up failed.</td><td>Open the page; restart the router for DNS problems.</td></tr>
+  <tr><td>Storage or system stats</td><td>A disk, storage pool, full volume or temperature problem on your NAS.</td><td>See Performance; replace failing disks soon and keep a backup.</td></tr>
+  <tr><td>Trusted program changed</td><td>A program you trusted has a different fingerprint.</td><td>If it just updated, trust the new version; if not, scan for malware.</td></tr>
+  <tr><td>Regular check-ins</td><td>A program contacts the same place at very regular times.</td><td>Normal for updaters and chat apps; look up programs you don't recognise.</td></tr>
+  <tr><td>Reaching many home devices</td><td>This computer contacted many home devices on remote-control or file-sharing ports in a short time.</td><td>Expected during backups or network tools; otherwise check which program did it.</td></tr>
+</table>
+
+<h2 id="backup">Backup, restore and moving to a new computer</h2>
+<ol>
+  <li>Settings → <b>Backup &amp; restore</b> → <span class="k">Make a backup</span>. Tick <i>Include traffic history</i> if you want that too (bigger file). The file is saved to your Documents folder as <code>HomeNetWatch-backup-…json</code>.</li>
+  <li>To restore (on this or another computer), put the backup file in Documents, open Settings → Backup &amp; restore and click the file's name.</li>
+  <li>HomeNet Watch <b>checks the file's fingerprint first</b>: damaged or edited files are refused. It then shows what's inside and changes nothing until you pick what to restore and click <span class="k">Restore selected</span>.</li>
+  <li>After moving to a new computer, enter any SNMP v3 passwords again (backups never contain passwords).</li>
+</ol>
+
+<h2 id="updates">Updates</h2>
+<p>Go to <b>About → Check for updates</b>. If a new version is available you'll see what's new and a <span class="k">Download and install</span> button. HomeNet Watch downloads it, checks its fingerprint against the published one (and refuses anything that doesn't match), swaps it in, and offers <span class="k">Restart now</span>. Your devices, settings and history are kept.</p>
+<p>It also checks quietly when it starts; you can turn that off in About.</p>
+
+<h2 id="privacy">Privacy</h2>
+<p>Everything HomeNet Watch records stays on your computer. It only contacts the internet for:</p>
+<ul>
+  <li><b>Your outside address:</b> asks <code>api.ipify.org</code> every 30 minutes.</li>
+  <li><b>Speed tests:</b> only when you press Start (<code>speed.cloudflare.com</code>).</li>
+  <li><b>Countries on the world map:</b> only if you turn it on. Internet addresses (never your home devices, never content) are sent to <code>ip-api.com</code>.</li>
+  <li><b>Checks you set up yourself</b> (web pages, DNS).</li>
+  <li><b>Updates:</b> asks <code>api.github.com</code> for the newest version (can be turned off).</li>
+</ul>
+
+<h2 id="trouble">Troubleshooting</h2>
+<h3>No devices were found</h3>
+<p>Check Settings → <i>Finding devices</i>: the address range should match your home network (click <span class="k">Use my network</span>). A VPN can hide your home network; pause it and scan again.</p>
+<h3>A device shows offline but it's on</h3>
+<p>Many phones, TVs and smart plugs ignore ping or doze. In its details, untick <i>Answers to ping</i> and tick <i>Check it is present</i>, or watch a port it offers.</p>
+<h3>Lots of "slow" devices</h3>
+<p>Wi-Fi gadgets that sleep often answer slowly. Raise <i>Call a device slow above</i> in Settings, or mute "Slow responses" in Alerts → Tuning.</p>
+<h3>My NAS shows "no answer"</h3>
+<p>Make sure SNMP is switched on in the NAS, the version matches, and the community or v3 user and passwords are exactly the same in both places. Some NAS firewalls block SNMP (UDP port 161); allow it for your home network.</p>
+<h3>The Data column in Apps &amp; sites is empty</h3>
+<p>On Windows use <span class="k">Restart as administrator</span>. On Mac and Linux only connection counts are available for now.</p>
+<h3>Update says the program is in a protected folder</h3>
+<p>Move HomeNet Watch to a folder of your own (for example in Documents), or download the new version from the release page.</p>
+<h3>The speed test is slower than my plan</h3>
+<p>Wi-Fi, other devices and busy evenings all affect results. Test with a cable to the router and nothing else running.</p>
+<h3>Starting over</h3>
+<p>Settings → <i>Your data</i> → <span class="k">Forget all devices and history</span>. Make a backup first if you might want anything back.</p>
+
+<h2 id="glossary">Glossary</h2>
+<table>
+  <tr><td><b>IP address</b></td><td>A device's number on a network, like a house number.</td></tr>
+  <tr><td><b>Outside address</b></td><td>The one address your whole home shares on the internet.</td></tr>
+  <tr><td><b>Router / gateway</b></td><td>The box that connects your home to the internet and hands out addresses.</td></tr>
+  <tr><td><b>MAC (hardware) address</b></td><td>A device's built-in network ID. Phones may show a different "private" one per network.</td></tr>
+  <tr><td><b>Ping / response time</b></td><td>A tiny "are you there?" message, and how long the answer takes (ms; lower is better).</td></tr>
+  <tr><td><b>Port</b></td><td>A numbered door for one kind of service, like 80 for web pages.</td></tr>
+  <tr><td><b>DNS</b></td><td>The internet's phone book: turns names like example.com into addresses.</td></tr>
+  <tr><td><b>Mb/s</b></td><td>Megabits per second; 8 Mb/s moves about 1 megabyte each second.</td></tr>
+  <tr><td><b>CDN</b></td><td>Companies that keep copies of websites close to you so they load quickly.</td></tr>
+  <tr><td><b>Analytics / telemetry</b></td><td>Data apps send home about how they're used.</td></tr>
+  <tr><td><b>Digital signature</b></td><td>A seal showing who made a program and that it hasn't changed since.</td></tr>
+  <tr><td><b>Fingerprint (SHA-256)</b></td><td>A code calculated from a file; change one byte and it changes.</td></tr>
+  <tr><td><b>ARP spoofing</b></td><td>A device pretending to be your router to secretly read traffic.</td></tr>
+  <tr><td><b>NAS / RAID / storage pool</b></td><td>A box of disks on your network; disks working together so one can fail safely; space set aside for volumes.</td></tr>
+  <tr><td><b>SNMP</b></td><td>A standard way for NAS boxes and routers to share their stats.</td></tr>
+  <tr><td><b>MITRE ATT&amp;CK</b></td><td>A public catalogue of attacker techniques; some alerts show a matching number for reference.</td></tr>
+</table>
+
+<footer>HomeNet Watch by DDID · DaleDumbsITDown.com · Support: PayPal @dalemeredith · Ko-fi ko-fi.com/superdale</footer>
+</main>
+</div>
+</body>
+</html>

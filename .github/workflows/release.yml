@@ -1,0 +1,116 @@
+# Builds HomeNet Watch for Windows, macOS and Linux whenever a release is
+# published on GitHub, and attaches the programs plus SHA256SUMS.txt to it.
+# The app's "Check for updates" button reads those releases.
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset: homenet-watch-windows-x86_64.exe
+          - os: ubuntu-22.04
+            asset: homenet-watch-linux-x86_64
+          - os: macos-14
+            asset: homenet-watch-macos-universal
+    runs-on: ${{ matrix.os }}
+    env:
+      # Stamped into the app so published copies know where to look for updates.
+      HNW_UPDATE_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
+
+      - name: Check the version matches the release tag
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          v=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$v" != "$tag" ]; then
+            echo "Cargo.toml says version $v but the release tag is $GITHUB_REF_NAME. Make them match."
+            exit 1
+          fi
+
+      - name: Linux build libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev \
+            libgl1-mesa-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libwayland-dev
+
+      - name: Build (Windows, Linux)
+        if: runner.os != 'macOS'
+        shell: bash
+        run: cargo build --release --locked
+
+      - name: Build (macOS, Intel + Apple silicon in one file)
+        if: runner.os == 'macOS'
+        run: |
+          cargo build --release --locked --target aarch64-apple-darwin
+          cargo build --release --locked --target x86_64-apple-darwin
+          lipo -create -output target/homenet-watch-universal \
+            target/aarch64-apple-darwin/release/homenet-watch \
+            target/x86_64-apple-darwin/release/homenet-watch
+
+      - name: Collect the program
+        shell: bash
+        run: |
+          mkdir -p dist
+          case "$RUNNER_OS" in
+            Windows) cp target/release/homenet-watch.exe "dist/${{ matrix.asset }}" ;;
+            macOS)   cp target/homenet-watch-universal "dist/${{ matrix.asset }}" ;;
+            *)       cp target/release/homenet-watch "dist/${{ matrix.asset }}" ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Include the user guide
+        run: cp docs/user-guide.html dist/HomeNet-Watch-User-Guide.html
+
+      - name: Fingerprints (the app checks downloads against these)
+        run: |
+          cd dist
+          sha256sum homenet-watch-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Attach files to the release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: dist/*
+
+      - name: Keep the files (manual runs)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: homenet-watch-all
+          path: dist/*
