@@ -216,10 +216,14 @@ impl App {
                 e.3 += 1;
             }
         }
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| self.countries_body(ui, s, by_country));
+    }
+
+    fn countries_body(&mut self, ui: &mut Ui, s: &mut Shared, by_country: std::collections::BTreeMap<String, (u64, f32, f32, usize)>) {
         let w = ui.available_width();
         let map_w = w;
         let map_h = map_w * (crate::worldmap::LAT_TOP - crate::worldmap::LAT_BOTTOM) / 360.0;
-        let (rect, resp) = ui.allocate_exact_size(vec2(map_w, map_h.min(ui.available_height() - 140.0).max(200.0)), Sense::hover());
+        let (rect, resp) = ui.allocate_exact_size(vec2(map_w, map_h.min(430.0).max(200.0)), Sense::click());
         let p = ui.painter_at(rect);
         p.rect_filled(rect, 10.0, Color32::from_rgb(0x10, 0x17, 0x24));
         if let Some(tex) = &self.world {
@@ -227,17 +231,26 @@ impl App {
         }
         let maxc = by_country.values().map(|v| v.0).max().unwrap_or(1) as f32;
         let mut hover_txt = None;
+        let mut clicked_country: Option<String> = None;
         for (name, (n, lat, lon, k)) in &by_country {
             let (fx, fy) = crate::worldmap::project(lat / *k as f32, lon / *k as f32);
             let c = pos2(rect.left() + fx * rect.width(), rect.top() + fy * rect.height());
             let r = 4.0 + 16.0 * (*n as f32 / maxc).sqrt();
-            p.circle_filled(c, r, BLUE.linear_multiply(0.35));
-            p.circle_stroke(c, r, Stroke::new(1.5f32, BLUE));
+            let sel = self.sel_country.as_deref() == Some(name.as_str());
+            let col = if sel { GOLD } else { BLUE };
+            p.circle_filled(c, r, col.linear_multiply(0.35));
+            p.circle_stroke(c, r, Stroke::new(if sel { 2.5f32 } else { 1.5 }, col));
             if let Some(hp) = resp.hover_pos() {
                 if hp.distance(c) < r + 3.0 {
-                    hover_txt = Some(format!("{}: {} connections", name, n));
+                    hover_txt = Some(format!("{}: {} connections · click to see programs", name, n));
+                    if resp.clicked() {
+                        clicked_country = Some(name.clone());
+                    }
                 }
             }
+        }
+        if let Some(c) = clicked_country {
+            self.sel_country = Some(c);
         }
         if let (Some(t), Some(hp)) = (hover_txt, resp.hover_pos()) {
             let g = p.layout_no_wrap(t, FontId::proportional(12.0), TEXT);
@@ -251,12 +264,107 @@ impl App {
         ui.add_space(8.0);
         let mut list: Vec<(&String, &(u64, f32, f32, usize))> = by_country.iter().collect();
         list.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
+        if !list.is_empty() {
+            ui.label(RichText::new("Click a country to see which programs connect there:").size(12.0).color(FAINT));
+        }
         ui.horizontal_wrapped(|ui| {
-            for (name, v) in list.iter().take(40) {
-                ui.label(RichText::new(format!("{}  {}", name, v.0)).size(12.5).color(MUTED));
-                ui.add_space(10.0);
+            for (name, v) in list.iter().take(60) {
+                let sel = self.sel_country.as_deref() == Some(name.as_str());
+                let word = if v.0 == 1 { "connection" } else { "connections" };
+                if ui.selectable_label(sel, RichText::new(format!("{}  {} {}", name, v.0, word)).size(12.5)).clicked() {
+                    self.sel_country = if sel { None } else { Some((*name).clone()) };
+                }
             }
         });
+        if let Some(country) = self.sel_country.clone() {
+            ui.add_space(10.0);
+            self.country_programs(ui, s, &country);
+        }
+    }
+
+    /// Which programs connect to places in one country, and to which places.
+    fn country_programs(&mut self, ui: &mut Ui, s: &Shared, country: &str) {
+        let tr = &s.traffic.saved;
+        let hosts: Vec<&Host> = tr.hosts.values().filter(|h| h.country.as_deref() == Some(country)).collect();
+        let total: u64 = hosts.iter().map(|h| h.conns).sum();
+        // program key -> (name, places in this country)
+        let mut per_app: Vec<(Option<String>, String, Vec<&Host>)> = vec![];
+        for a in tr.apps.values() {
+            let mine: Vec<&Host> = hosts.iter().cloned().filter(|h| a.dests.iter().any(|d| d == &h.ip)).collect();
+            if !mine.is_empty() {
+                per_app.push((Some(a.key.clone()), a.name.clone(), mine));
+            }
+        }
+        let unknown: Vec<&Host> = hosts.iter().cloned().filter(|h| !tr.apps.values().any(|a| a.dests.iter().any(|d| d == &h.ip))).collect();
+        if !unknown.is_empty() {
+            per_app.push((None, "Program not known (it closed before it was seen)".into(), unknown));
+        }
+        per_app.sort_by(|a, b| b.2.iter().map(|h| h.conns).sum::<u64>().cmp(&a.2.iter().map(|h| h.conns).sum::<u64>()));
+        let mut open_app: Option<String> = None;
+        let mut open_host: Option<String> = None;
+        let mut close = false;
+        flow_card(ui, "", |ui| {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(format!("Programs connecting to {}", country)).size(16.0).strong());
+                ui.label(RichText::new(format!("{} connections to {} places", total, hosts.len())).color(MUTED));
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.small_button("✖").clicked() {
+                        close = true;
+                    }
+                });
+            });
+            ui.add_space(6.0);
+            egui::Grid::new(("country_apps", country)).num_columns(3).spacing([24.0, 8.0]).striped(true).show(ui, |ui| {
+                ui.label(RichText::new("Program").color(MUTED));
+                ui.label(RichText::new("Connections").color(MUTED));
+                ui.label(RichText::new("Places in this country").color(MUTED));
+                ui.end_row();
+                for (key, name, places) in &per_app {
+                    match key {
+                        Some(k) => {
+                            if ui.link(RichText::new(name).strong()).clicked() {
+                                open_app = Some(k.clone());
+                            }
+                        }
+                        None => {
+                            ui.label(RichText::new(name).color(MUTED));
+                        }
+                    }
+                    ui.label(places.iter().map(|h| h.conns).sum::<u64>().to_string());
+                    ui.horizontal_wrapped(|ui| {
+                        ui.set_max_width(520.0);
+                        let mut ps = places.clone();
+                        ps.sort_by(|a, b| b.conns.cmp(&a.conns));
+                        for h in ps.iter().take(6) {
+                            let label = h.name.clone().unwrap_or_else(|| h.ip.clone());
+                            if ui.link(RichText::new(label).size(12.5)).on_hover_text(format!("{} · {} · {} connections", h.ip, h.category, h.conns)).clicked() {
+                                open_host = Some(h.ip.clone());
+                            }
+                        }
+                        if ps.len() > 6 {
+                            ui.label(RichText::new(format!("+{} more", ps.len() - 6)).size(12.0).color(FAINT));
+                        }
+                    });
+                    ui.end_row();
+                }
+            });
+            ui.label(
+                RichText::new("A place can be shared by several programs, so connections are counted per place. Click a program or place for its details.")
+                    .size(11.5)
+                    .color(FAINT),
+            );
+        });
+        if close {
+            self.sel_country = None;
+        }
+        if open_app.is_some() {
+            self.sel_app = open_app;
+            self.sel_host = None;
+        }
+        if open_host.is_some() {
+            self.sel_host = open_host;
+            self.sel_app = None;
+        }
     }
 
     fn apps_live(&mut self, ui: &mut Ui, s: &mut Shared) {

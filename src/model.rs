@@ -88,8 +88,18 @@ impl DeviceKind {
         }
     }
     /// Devices that sleep or leave the house often shouldn't raise alarms by default.
+    /// Devices that sleep, go into standby or leave the house (phones, TVs, speakers…)
+    /// start with "went offline" alerts off; always-on gear starts with them on.
     pub fn alerts_by_default(self) -> bool {
-        !matches!(self, DeviceKind::Phone | DeviceKind::Tablet | DeviceKind::Laptop | DeviceKind::Unknown)
+        !matches!(
+            self,
+            DeviceKind::Phone | DeviceKind::Tablet | DeviceKind::Laptop | DeviceKind::Tv | DeviceKind::Speaker | DeviceKind::Console | DeviceKind::Unknown
+        )
+    }
+
+    /// Gear whose slowness affects everyone at home.
+    pub fn important(self) -> bool {
+        matches!(self, DeviceKind::Router | DeviceKind::Internet | DeviceKind::Storage | DeviceKind::NetworkGear)
     }
 }
 
@@ -428,6 +438,44 @@ pub struct AlertInfo {
     pub mitre: &'static str,
 }
 
+/// MITRE ATT&CK technique name and tactics (the attacker's goal) for the IDs we use.
+pub fn mitre_details(id: &str) -> Option<(&'static str, &'static str)> {
+    Some(match id {
+        "T1200" => ("Hardware Additions", "Initial Access"),
+        "T1557" => ("Adversary-in-the-Middle", "Credential Access, Collection"),
+        "T1557.002" => ("ARP Cache Poisoning", "Credential Access, Collection"),
+        "T1133" => ("External Remote Services", "Initial Access, Persistence"),
+        "T1554" => ("Compromise Host Software Binary", "Persistence"),
+        "T1071" => ("Application Layer Protocol", "Command and Control"),
+        "T1021" => ("Remote Services", "Lateral Movement"),
+        _ => return None,
+    })
+}
+
+/// "T1557.002 ARP Cache Poisoning (Credential Access, Collection)", or "" when untagged.
+pub fn mitre_label(id: &str) -> String {
+    match mitre_details(id) {
+        Some((name, tactic)) => format!("{} {} ({})", id, name, tactic),
+        None if id.is_empty() => String::new(),
+        None => id.to_string(),
+    }
+}
+
+impl Event {
+    /// The alert type, working it out for older alerts that didn't record it.
+    pub fn kind_or_guess(&self) -> &str {
+        if self.kind.is_empty() {
+            infer_kind(&self.message)
+        } else {
+            &self.kind
+        }
+    }
+    /// MITRE ATT&CK technique for this alert, if it's a security alert.
+    pub fn mitre(&self) -> &'static str {
+        alert_info(self.kind_or_guess()).mitre
+    }
+}
+
 pub const ALERT_KINDS: [&str; 19] = [
     "offline", "back-online", "slow", "port-closed", "new-device", "departed", "address-changed", "gateway-change", "arp-spoof", "new-open-port",
     "web-check", "dns-check", "nas-problem", "program-changed", "beacon", "lateral", "speed", "scan", "other",
@@ -517,6 +565,29 @@ pub struct Settings {
     pub departed_hours: u32,
     /// Look for a new version on GitHub when the app starts (published copies only)
     pub check_updates: bool,
+    /// Closing the window keeps HomeNet Watch watching in the background
+    pub keep_running: bool,
+    /// Pop-up notifications on this computer when the window isn't in front
+    pub notify_desktop: bool,
+    /// Phone and email alerts from this level up: 1 = warnings, 2 = critical only
+    pub remote_min: u8,
+    /// Quiet hours also hold back phone and email alerts
+    pub quiet_remote: bool,
+    pub ntfy_enabled: bool,
+    pub ntfy_server: String,
+    pub ntfy_topic: String,
+    pub email_enabled: bool,
+    pub smtp_host: String,
+    pub smtp_port: u16,
+    pub smtp_user: String,
+    #[serde(with = "crate::secret")]
+    pub smtp_pass: String,
+    pub email_from: String,
+    pub email_to: String,
+    /// Only routers, the internet, NAS boxes and network gear raise "slow" alerts
+    pub slow_important_only: bool,
+    /// Network map grouping: 0 none, 1 by type, 2 by room
+    pub map_group: u8,
 }
 
 impl Settings {
@@ -560,6 +631,22 @@ impl Default for Settings {
             muted: vec![],
             departed_hours: 24,
             check_updates: true,
+            keep_running: true,
+            notify_desktop: true,
+            remote_min: 2,
+            quiet_remote: true,
+            ntfy_enabled: false,
+            ntfy_server: "https://ntfy.sh".into(),
+            ntfy_topic: String::new(),
+            email_enabled: false,
+            smtp_host: String::new(),
+            smtp_port: 587,
+            smtp_user: String::new(),
+            smtp_pass: String::new(),
+            email_from: String::new(),
+            email_to: String::new(),
+            slow_important_only: true,
+            map_group: 0,
         }
     }
 }
@@ -605,6 +692,8 @@ pub struct Shared {
     pub attention: bool,
     /// The home's public address as the internet sees it
     pub external_ip: Option<String>,
+    /// The window is visible and in front (desktop notifications are skipped then)
+    pub window_active: bool,
     /// This computer's traffic, programs, destinations and speed tests
     pub traffic: crate::traffic::Traffic,
     pub last_gateway: Option<Ipv4Addr>,

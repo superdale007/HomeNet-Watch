@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app;
+mod background;
+mod notify;
 mod backup;
 mod categories;
 mod report;
@@ -32,6 +34,7 @@ fn main() -> eframe::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let mut screenshot: Option<PathBuf> = None;
     let mut page: Option<String> = None;
+    let mut background_start = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -43,6 +46,8 @@ fn main() -> eframe::Result<()> {
                 page = Some(args[i + 1].clone());
                 i += 1;
             }
+            // Started with the computer: begin hidden, watching in the background.
+            "--background" => background_start = true,
             // Troubleshooting: print what a device reports over SNMP, then exit.
             //   --snmp-probe <ip> [community]
             //   --snmp-probe <ip> v3 <user> <MD5|SHA1|SHA256|none> <auth password> <DES|AES|none> <privacy password>
@@ -80,6 +85,11 @@ fn main() -> eframe::Result<()> {
         i += 1;
     }
 
+    // Only one copy at a time: a second start just brings the running one to the front.
+    if screenshot.is_none() && background::signal_existing() {
+        return Ok(());
+    }
+
     let mut viewport = egui::ViewportBuilder::default()
         .with_title("HomeNet Watch by DDID")
         .with_inner_size([1360.0, 860.0])
@@ -105,6 +115,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "HomeNet Watch by DDID",
         options,
-        Box::new(move |cc| Ok(Box::new(app::App::new(cc, screenshot, page)))),
+        Box::new(move |cc| Ok(Box::new(app::App::new(cc, screenshot, page, background_start)))),
     )
 }

@@ -12,6 +12,26 @@ pub(super) const SITE_URL: &str = "https://daledumbsitdown.com";
 /// Version history shown under "What's new" (newest first).
 const CHANGES: &[(&str, &[&str])] = &[
     (
+        "0.8",
+        &[
+            "MITRE ATT&CK details: technique name and the attacker's goal (tactic) on security alerts",
+            "Alerts: new Security filter and Save as spreadsheet (with explanations and techniques)",
+            "MITRE techniques in the weekly report and the alert Tuning tab",
+            "Settings Checkup: one-click tests for the tray icon, start with the computer, phone, email, SNMP v3 sign-in and your GitHub release",
+        ],
+    ),
+    (
+        "0.7",
+        &[
+            "Keeps watching when the window is closed, with an icon by the clock (Windows, Mac)",
+            "Start with the computer, pop-up notifications on this computer",
+            "Alerts on your phone (ntfy) and by email",
+            "Countries: click a country to see which programs connect there",
+            "Network map can group devices by type or room",
+            "Quieter alerts: TVs, speakers and consoles start with offline alerts off; slow alerts only for key gear",
+        ],
+    ),
+    (
         "0.6",
         &[
             "Secure SNMP v3 for NAS boxes (user name, MD5/SHA authentication, DES/AES encryption)",
@@ -214,6 +234,8 @@ impl App {
                     "• Countries on the world map: only if you turn it on (ip-api.com receives internet addresses, never your home devices).",
                     "• Web page and DNS checks you set up yourself.",
                     "• Updates: published copies ask api.github.com for the newest version (you can turn this off below).",
+                    "• Phone alerts, only if you turn them on: the alert text goes through ntfy.sh (or your own ntfy server).",
+                    "• Email alerts, only if you turn them on: sent through your own mail provider.",
                 ] {
                     ui.label(RichText::new(line).color(MUTED));
                 }

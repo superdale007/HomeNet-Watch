@@ -55,6 +55,8 @@
   <a class="sub" href="#reports">Reports</a>
   <a class="sub" href="#settings">Settings</a>
   <a class="sub" href="#about">About</a>
+  <a href="#background">Running in the background</a>
+  <a href="#away">Alerts on your phone or email</a>
   <a href="#nas">Setting up your NAS</a>
   <a href="#alert-types">Alert types explained</a>
   <a href="#backup">Backup, restore, new computer</a>
@@ -95,8 +97,10 @@ If the program sits in a folder of your own, it can update itself with one click
   <li>An <b>Internet</b> entry checks a public address (1.1.1.1) so you can tell your internet is down even when the router is fine.</li>
   <li>Your computer's own traffic and programs start being recorded right away; the history fills in while the app is open.</li>
 </ol>
-<div class="note"><b>Phones, tablets and laptops</b>
-These come and go and sleep a lot, so their "went offline" alerts start switched <b>off</b>. You can turn alerts on for any device in its details.</div>
+<div class="note"><b>Phones, tablets, laptops, TVs, speakers and game consoles</b>
+These come and go, sleep or go into standby, so their "went offline" alerts start switched <b>off</b>. "Slow" alerts are only raised for your router, the internet, NAS boxes and network gear. You can turn alerts on for any device in its details.</div>
+<div class="tip"><b>It keeps watching when you close the window</b>
+Closing the window hides HomeNet Watch; it keeps checking and alerting. On Windows and Mac open it again from its <b>icon by the clock</b> (Windows: you may need to click the little arrow to see it). See <a href="#background">Running in the background</a>.</div>
 <p>Under <b>Your network</b> at the bottom left you always see this computer's address, your router's address, your <b>outside (internet) address</b>, and the current download/upload speed.</p>
 
 <h2 id="tour">The pages</h2>
@@ -126,7 +130,7 @@ These come and go and sleep a lot, so their "went offline" alerts start switched
 </ul>
 
 <h3 id="map">Network map</h3>
-<p>Internet at the top, your router below it, and every device in rows underneath, coloured by status. Offline devices get a dashed red line. Drag devices to arrange them; <span class="k">Arrange automatically</span> puts everything back. Click a device for its details.</p>
+<p>Internet at the top, your router below it, and every device in rows underneath, coloured by status. Offline devices get a dashed red line. Drag devices to arrange them; <span class="k">Arrange automatically</span> puts everything back. With many devices, use <b>Group by Type</b> or <b>Group by Room</b> at the top to sort them into labelled bands (rooms come from each device's <i>Room / group</i>). Click a device for its details.</p>
 
 <h3 id="traffic">Traffic</h3>
 <p>How much <b>this computer</b> downloads and uploads: right now, today, and over the last 7 days compared with the week before.</p>
@@ -141,7 +145,7 @@ These come and go and sleep a lot, so their "went offline" alerts start switched
 <ul>
   <li><b>Programs:</b> each program with its <b>trust</b> status (signed by its maker, part of the operating system, not signed, or trusted by you), how many connections are open now, today and in total, and the data it used.</li>
   <li><b>Destinations:</b> every internet place contacted, with its name, <b>category</b> (Advertising, Analytics, Content delivery, Updates, Cloud, Social, Streaming, Gaming), country, programs and ports.</li>
-  <li><b>Countries:</b> a world map of where traffic goes (turn on country lookup first; see <a href="#privacy">Privacy</a>).</li>
+  <li><b>Countries:</b> a world map of where traffic goes (turn on country lookup first; see <a href="#privacy">Privacy</a>). <b>Click a country</b> (a dot on the map or its name below) to see which programs connect there, how many connections they make and which places they reach.</li>
   <li><b>Connections now:</b> live list of open connections.</li>
 </ul>
 <p>Click any program or destination for its details. For a program you'll see where it lives, what started it, who signed it, its <b>fingerprint (SHA-256)</b> and the places it connects to. <span class="k">Trust this version</span> remembers the fingerprint: if the program file ever changes (for example it's tampered with), you get an alert. After a normal update, simply trust the new version.</p>
@@ -169,9 +173,9 @@ Pause big downloads and streaming first. For your connection's full speed, test 
 <p><span class="k">Details</span> opens the device; <span class="k">✖ Remove</span> stops reading its stats (it stays in Devices). Add devices with <b>Read stats from a device</b> at the bottom.</p>
 
 <h3 id="alerts">Alerts</h3>
-<p>Everything that happened, newest first. Filter by <b>All</b>, <b>Not seen yet</b> or <b>Critical</b>. Click an alert to read <b>what it means</b>, <b>what you can do</b>, and (for security alerts) its <b>MITRE ATT&amp;CK</b> reference. From there you can open the device or <span class="k">Mute alerts like this</span>.</p>
+<p>Everything that happened, newest first. Filter by <b>All</b>, <b>Not seen yet</b>, <b>Critical</b> or <b>Security</b> (alerts linked to a known attacker technique). Click an alert to read <b>what it means</b>, <b>what you can do</b>, and for security alerts its <b>MITRE ATT&amp;CK</b> technique with its name and the attacker's goal (the "tactic"), for example <i>T1557.002 ARP Cache Poisoning (Credential Access, Collection)</i>. Click it to read more on attack.mitre.org. From there you can also open the device or <span class="k">Mute alerts like this</span>. <span class="k">Save as spreadsheet</span> exports every alert with its explanation and technique.</p>
 <p>When something critical happens (like a device going offline), a <b>red bar</b> appears across the top until you click <span class="k">View alerts</span> or <span class="k">Mark as seen</span>. HomeNet Watch can also play a sound and flash its taskbar/Dock icon (see Settings).</p>
-<p>The <b>Tuning</b> tab shows, for each type of alert, how many arrived in the last 30 days and how many you actually opened. Types you never open are good candidates to mute; muted alerts are still recorded, just hidden and silent.</p>
+<p>The <b>Tuning</b> tab shows, for each type of alert, its MITRE ATT&amp;CK technique (if any), how many arrived in the last 30 days and how many you actually opened. Types you never open are good candidates to mute; muted alerts are still recorded, just hidden and silent.</p>
 
 <h3 id="reports">Reports</h3>
 <p>Availability of every device (how often it answered), average and worst response, outages and total time offline.</p>
@@ -181,11 +185,21 @@ Pause big downloads and streaming first. For your connection's full speed, test 
 </ul>
 
 <h3 id="settings">Settings</h3>
+<p>At the top is the <b>Checkup</b>: one-click tests for the things that are worth confirming once, each with a plain result underneath:</p>
+<ul>
+  <li><b>Icon by the clock:</b> whether it's there, and <span class="k">Hide the window now</span> so you can practise bringing it back.</li>
+  <li><b>Start with the computer:</b> on or off, and if it points at an older or moved copy of HomeNet Watch, <span class="k">Fix it</span>.</li>
+  <li><b>Phone and email alerts:</b> <span class="k">Send a test</span> buttons.</li>
+  <li><b>Secure NAS stats (SNMP v3):</b> <span class="k">Test sign-in now</span> for each NAS using v3, or step-by-step Synology instructions if none does yet. The same button is in the NAS's details panel.</li>
+  <li><b>In-app updates:</b> whether this copy can update itself, and <span class="k">Check the latest release</span>: type your repository (owner/name) to confirm the newest GitHub release has the Windows, Mac and Linux files, the fingerprints and the user guide.</li>
+</ul>
 <table>
   <tr><th>Section</th><th>What you can set</th></tr>
   <tr><td>Checking</td><td>How often devices are checked (default every 30 s), how long to wait for an answer, and monitoring on/off.</td></tr>
-  <tr><td>Alerts</td><td>When a device counts as slow (default 150 ms, judged over 3 checks in a row), how many missed checks mean offline (default 2), and alerts for new devices.</td></tr>
-  <tr><td>When something goes wrong</td><td>Warning sound, flashing the taskbar/Dock icon, and <b>quiet hours</b> (no sound or flashing, for example 22:00–07:00).</td></tr>
+  <tr><td>Alerts</td><td>When a device counts as slow (default 150 ms, judged over 3 checks in a row), whether slow alerts are only for the router, internet, NAS and network gear (default on), how many missed checks mean offline (default 2), and alerts for new devices. <span class="k">Apply these quieter defaults to all my devices</span> resets each device's "Alert me" switch to the default for its type.</td></tr>
+  <tr><td>When something goes wrong</td><td>Warning sound, flashing the taskbar/Dock icon, pop-up notifications when the window isn't in front, and <b>quiet hours</b> (no sound, flashing or pop-ups, for example 22:00–07:00).</td></tr>
+  <tr><td>Running in the background</td><td>Keep watching when the window is closed, start with the computer, and <span class="k">Quit HomeNet Watch now</span>. See <a href="#background">below</a>.</td></tr>
+  <tr><td>Phone &amp; email alerts</td><td>Send critical alerts (or warnings too) to your phone through ntfy and/or by email. See <a href="#away">below</a>.</td></tr>
   <tr><td>NAS &amp; system stats</td><td>How often stats are read, and warning limits: volume fullness (90%), disk temperature (60 °C), the NAS's own temperature (70 °C) and processor load (90%).</td></tr>
   <tr><td>Finding devices</td><td>Which addresses to scan (normally your whole home network), how often to look for new devices (default every 6 hours), and <span class="k">Scan now</span>.</td></tr>
   <tr><td>Internet destinations &amp; devices</td><td>Country lookup on/off, and after how many hours a missing device is reported (default 24).</td></tr>
@@ -195,6 +209,37 @@ Pause big downloads and streaming first. For your connection's full speed, test 
 
 <h3 id="about">About</h3>
 <p>Version and build date, <span class="k">Check for updates</span>, the <b>What's new</b> list, privacy details, the glossary, and ways to support DDID (PayPal @dalemeredith and Ko-fi ko-fi.com/superdale).</p>
+
+<h2 id="background">Running in the background</h2>
+<p>HomeNet Watch only watches while it's running, so it's built to stay running quietly:</p>
+<ul>
+  <li><b>Closing the window doesn't stop it.</b> The window hides and HomeNet Watch keeps checking your network, recording traffic and sending alerts. (Turn this off in Settings → <i>Running in the background</i> if you'd rather it quit.)</li>
+  <li><b>Windows and Mac: the icon by the clock.</b> Click the gold HomeNet Watch icon to open the window again. Right-click (Mac: click) it for <i>Open</i>, <i>Pause or resume monitoring</i> and <i>Quit</i>. On Windows the icon may be tucked behind the little <b>^</b> arrow; drag it out to keep it visible.</li>
+  <li><b>Linux:</b> the window is minimised to your taskbar instead.</li>
+  <li><b>Starting it again</b> while it's already running simply brings the window back; there's only ever one copy.</li>
+  <li><b>Start with the computer:</b> in Settings → <i>Running in the background</i>, tick <i>Start HomeNet Watch when I sign in</i>. It then starts hidden each time you sign in.</li>
+  <li><b>Pop-ups:</b> while the window isn't in front, warnings and critical alerts appear as notifications from your system (not during quiet hours).</li>
+  <li><b>Quitting for real:</b> use <i>Quit</i> on the icon by the clock, or Settings → <span class="k">Quit HomeNet Watch now</span>.</li>
+</ul>
+
+<h2 id="away">Alerts on your phone or by email</h2>
+<p>Settings → <b>Phone &amp; email alerts</b>. Choose whether to send <i>critical alerts only</i> (something went offline, a disk failed, router impersonation…) or <i>warnings too</i>, and whether quiet hours hold them back. At most 20 messages an hour are sent, and several alerts at once are combined into one message. Your computer sends them, so HomeNet Watch needs to be running (it can be in the background).</p>
+<h3>Phone notifications with ntfy (free)</h3>
+<ol>
+  <li>Install the free <b>ntfy</b> app on your phone (Google Play, F-Droid or the App Store).</li>
+  <li>In HomeNet Watch tick <i>Send alerts to my phone</i>. A hard-to-guess <b>topic</b> name is filled in for you; click <span class="k">Copy</span>.</li>
+  <li>In the ntfy app tap <b>+</b> (Subscribe to topic), paste the topic name and keep the server as <code>ntfy.sh</code>.</li>
+  <li>Click <span class="k">Send a test to my phone</span>; a notification should arrive within seconds.</li>
+</ol>
+<div class="warn"><b>Keep the topic private</b>
+Anyone who knows the topic name can read your alerts, so treat it like a password. Click <span class="k">New</span> for a fresh one at any time (then subscribe to the new name). If you run your own ntfy server, put its address in <i>Server</i>.</div>
+<h3>Email</h3>
+<ol>
+  <li>Tick <i>Send alerts by email</i> and click <b>Gmail</b>, <b>iCloud</b> or <b>Yahoo</b> to fill in the mail server, or type your provider's (usually port 587, or 465).</li>
+  <li>Enter your email address as the user name, and an <b>app password</b>. Gmail, iCloud and Yahoo don't accept your normal password here: create an app password in your account's security settings (Google: <i>Security → 2-Step Verification → App passwords</i>; Apple: <i>account.apple.com → App-Specific Passwords</i>; Yahoo: <i>Account security → Generate app password</i>).</li>
+  <li>Fill in <i>Send to</i> (several addresses: separate them with commas) and click <span class="k">Send a test email</span>.</li>
+</ol>
+<p class="muted">The connection to your mail server is always encrypted. On Windows the password is saved encrypted for your Windows account; it is never included in backups.</p>
 
 <h2 id="nas">Setting up your NAS</h2>
 <p>NAS boxes share their stats through <b>SNMP</b>, which is usually switched off. Turn it on in the NAS first:</p>
@@ -253,6 +298,8 @@ On Windows, SNMP v3 passwords are saved encrypted for your Windows account. On M
   <li><b>Countries on the world map:</b> only if you turn it on. Internet addresses (never your home devices, never content) are sent to <code>ip-api.com</code>.</li>
   <li><b>Checks you set up yourself</b> (web pages, DNS).</li>
   <li><b>Updates:</b> asks <code>api.github.com</code> for the newest version (can be turned off).</li>
+  <li><b>Phone alerts</b> (only if you turn them on): the alert text goes through <code>ntfy.sh</code>, or your own ntfy server.</li>
+  <li><b>Email alerts</b> (only if you turn them on): sent through your own mail provider.</li>
 </ul>
 
 <h2 id="trouble">Troubleshooting</h2>
@@ -270,6 +317,12 @@ On Windows, SNMP v3 passwords are saved encrypted for your Windows account. On M
 <p>Move HomeNet Watch to a folder of your own (for example in Documents), or download the new version from the release page.</p>
 <h3>The speed test is slower than my plan</h3>
 <p>Wi-Fi, other devices and busy evenings all affect results. Test with a cable to the router and nothing else running.</p>
+<h3>Where did the window go?</h3>
+<p>Closing it hides it while HomeNet Watch keeps watching. Click its icon by the clock (Windows: look behind the <b>^</b> arrow), or simply start HomeNet Watch again.</p>
+<h3>Phone alerts don't arrive</h3>
+<p>Check that the topic in the ntfy app is exactly the same as in Settings, press <span class="k">Send a test to my phone</span>, and make sure your phone allows notifications from ntfy. Remember only critical alerts are sent unless you chose <i>warnings too</i>.</p>
+<h3>The test email fails</h3>
+<p>"Refused the user name or password" almost always means an app password is needed instead of your normal one. Also check the server and port (587 or 465) match your provider's instructions.</p>
 <h3>Starting over</h3>
 <p>Settings → <i>Your data</i> → <span class="k">Forget all devices and history</span>. Make a backup first if you might want anything back.</p>
 

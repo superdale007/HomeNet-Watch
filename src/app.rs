@@ -4,6 +4,8 @@ mod about_page;
 mod apps_page;
 mod insights_page;
 mod pages;
+mod settings_away;
+mod checkup;
 mod perf_page;
 mod traffic_page;
 
@@ -58,6 +60,8 @@ pub(crate) enum AlertFilter {
     All,
     Open,
     Critical,
+    /// Security alerts (the ones with a MITRE ATT&CK technique)
+    Security,
 }
 
 pub(crate) struct AddDialog {
@@ -89,6 +93,20 @@ pub struct App {
     /// Performance card asking "stop reading stats?"
     perf_confirm: Option<u64>,
     update: crate::update::UpdateRef,
+    /// Icon by the clock (Windows, macOS); kept here so it stays alive
+    #[cfg(any(windows, target_os = "macos"))]
+    #[allow(dead_code)]
+    tray: Option<tray_icon::TrayIcon>,
+    start_hidden: bool,
+    boot_frames: u32,
+    hidden_hint_shown: bool,
+    autostart: bool,
+    /// Result of a "send a test" for phone or email alerts
+    test_result: Arc<Mutex<Option<String>>>,
+    /// Results of the Settings checkup
+    checks: checkup::Checks,
+    repo_input: String,
+    sel_country: Option<String>,
     traffic_range: i64,
     scrub: f32,
     apps_tab: u8,
@@ -114,7 +132,7 @@ pub(crate) fn status_rank(s: Status) -> u8 {
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>, screenshot: Option<PathBuf>, page: Option<String>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, screenshot: Option<PathBuf>, page: Option<String>, background_start: bool) -> Self {
         apply(&cc.egui_ctx);
         let saved = load();
         let local_ip = net::local_ipv4();
@@ -132,6 +150,7 @@ impl App {
             check_now: true,
             attention: false,
             external_ip: None,
+            window_active: true,
             traffic: crate::traffic::Traffic { saved: crate::traffic::load(), ..Default::default() },
             last_gateway: saved.last_gateway,
             gateway_mac: saved.gateway_mac,
@@ -155,6 +174,25 @@ impl App {
         crate::traffic::start(shared.clone(), cc.egui_ctx.clone());
         // Updates: tidy up after a previous update, then look for a new version (published copies only).
         crate::update::clean_up_old();
+        // Background: remember the window, answer "show yourself" from a second start, pass alerts on.
+        crate::background::remember_window(cc);
+        if screenshot.is_none() {
+            let ctx = cc.egui_ctx.clone();
+            crate::background::listen(move || crate::background::show_window(&ctx));
+            crate::notify::start(shared.clone());
+        }
+        #[cfg(any(windows, target_os = "macos"))]
+        let tray = if screenshot.is_none() || std::env::var_os("HNW_TEST_TRAY").is_some() {
+            let t = make_tray(cc.egui_ctx.clone(), shared.clone());
+            if t.is_none() {
+                eprintln!("could not create the tray icon");
+            } else if std::env::var_os("HNW_TEST_TRAY").is_some() {
+                eprintln!("tray icon created");
+            }
+            t
+        } else {
+            None
+        };
         let update_state: crate::update::UpdateRef = Default::default();
         let want_check = !crate::update::repo().is_empty() && screenshot.is_none() && shared.lock().unwrap().settings.check_updates;
         if want_check {
@@ -164,9 +202,13 @@ impl App {
             monitor::start_scan(shared.clone(), cc.egui_ctx.clone());
         }
         let page_arg = page.clone();
+        // Test pictures of the grouped map: --page map-type / map-room
+        if let Some(g) = match page_arg.as_deref() { Some("map-type") => Some(1u8), Some("map-room") => Some(2), _ => None } {
+            shared.lock().unwrap().settings.map_group = g;
+        }
         let page = match page.as_deref() {
             Some("devices") => Page::Devices,
-            Some("map") => Page::Map,
+            Some("map") | Some("map-type") | Some("map-room") => Page::Map,
             Some("performance") => Page::Performance,
             Some("traffic") => Page::Traffic,
             Some("apps") | Some("countries") | Some("destinations") => Page::Apps,
@@ -199,6 +241,16 @@ impl App {
             group_filter: String::new(),
             perf_confirm: None,
             update: update_state,
+            #[cfg(any(windows, target_os = "macos"))]
+            tray,
+            start_hidden: background_start,
+            boot_frames: 0,
+            hidden_hint_shown: false,
+            autostart: crate::background::autostart_enabled(),
+            test_result: Default::default(),
+            checks: Default::default(),
+            repo_input: crate::update::repo().to_string(),
+            sel_country: None,
             traffic_range: 3600,
             scrub: 1.0,
             apps_tab: match page_arg.as_deref() { Some("destinations") => 1, Some("countries") => 2, _ => 0 },
@@ -220,6 +272,16 @@ impl App {
         ctx.request_repaint();
         let settled = !s.scan.running && s.devices.iter().all(|d| d.paused || d.last_check.is_some());
         let elapsed = self.started.elapsed().as_secs();
+        // Picture of the countries view: show the busiest country's programs.
+        if self.page == Page::Apps && self.apps_tab == 2 && self.sel_country.is_none() {
+            let mut counts: std::collections::HashMap<&str, u64> = Default::default();
+            for h in s.traffic.saved.hosts.values() {
+                if let Some(c) = &h.country {
+                    *counts.entry(c.as_str()).or_default() += h.conns;
+                }
+            }
+            self.sel_country = counts.into_iter().max_by_key(|x| x.1).map(|x| x.0.to_string());
+        }
         if self.selected.is_none() && matches!(self.page, Page::Devices | Page::Map) {
             self.selected = s.devices.iter().find(|d| d.kind == DeviceKind::Router).map(|d| d.id);
         }
@@ -258,6 +320,7 @@ impl eframe::App for App {
         let shared = self.shared.clone();
         let mut s = shared.lock().unwrap();
         self.handle_screenshot(ctx, &s);
+        self.background_frame(ctx, &mut s);
         ctx.request_repaint_after(std::time::Duration::from_secs(1));
 
         // Something went wrong: flash the taskbar button and beep (not in quiet hours).
@@ -774,4 +837,91 @@ fn beep() {
     }
     #[cfg(not(windows))]
     crate::unix::beep();
+}
+
+// ───────────────────────────── running in the background ─────────────────────────────
+impl App {
+    /// Each frame: notice the window's state, hide instead of closing, start hidden when asked.
+    fn background_frame(&mut self, ctx: &egui::Context, s: &mut Shared) {
+        self.boot_frames = self.boot_frames.saturating_add(1);
+        s.window_active = ctx.input(|i| i.viewport().focused.unwrap_or(true) && !i.viewport().minimized.unwrap_or(false));
+        if self.screenshot.is_some() {
+            return;
+        }
+        // Started with the computer: hide once the window exists.
+        if self.start_hidden && self.boot_frames == 3 {
+            self.start_hidden = false;
+            crate::background::hide_window(ctx);
+            s.window_active = false;
+        }
+        // Closing the window keeps watching in the background.
+        if ctx.input(|i| i.viewport().close_requested()) && s.settings.keep_running {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            crate::background::hide_window(ctx);
+            s.window_active = false;
+            if !self.hidden_hint_shown {
+                self.hidden_hint_shown = true;
+                let where_ = if cfg!(any(windows, target_os = "macos")) {
+                    "Open it again from its icon by the clock, or quit from there."
+                } else {
+                    "Open it again from the taskbar, or start it again."
+                };
+                crate::background::desktop_notify("HomeNet Watch is still watching", &format!("It keeps checking your network in the background. {}", where_));
+            }
+        }
+        // A phone/email test finished
+        if let Some(msg) = self.test_result.lock().unwrap().take() {
+            self.toast = Some((msg, Instant::now()));
+        }
+    }
+}
+
+/// Save everything and close for real.
+pub(crate) fn quit_now(shared: &SharedRef) -> ! {
+    if let Ok(s) = shared.lock() {
+        if s.persist {
+            let _ = save(&s.to_saved());
+            crate::traffic::save(&s.traffic.saved);
+        }
+    }
+    std::process::exit(0)
+}
+
+/// The icon by the clock with Open / Pause / Quit (Windows and macOS).
+#[cfg(any(windows, target_os = "macos"))]
+fn make_tray(ctx: egui::Context, shared: SharedRef) -> Option<tray_icon::TrayIcon> {
+    use tray_icon::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
+    use tray_icon::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+    let menu = Menu::new();
+    let open = MenuItem::new("Open HomeNet Watch", true, None);
+    let pause = MenuItem::new("Pause or resume monitoring", true, None);
+    let quit = MenuItem::new("Quit HomeNet Watch", true, None);
+    menu.append_items(&[&open, &PredefinedMenuItem::separator(), &pause, &PredefinedMenuItem::separator(), &quit]).ok()?;
+    let (open_id, pause_id, quit_id) = (open.id().clone(), pause.id().clone(), quit.id().clone());
+    let (rgba, w, h) = crate::background::icon_rgba();
+    let icon = tray_icon::Icon::from_rgba(rgba, w, h).ok()?;
+    let tray = TrayIconBuilder::new().with_menu(Box::new(menu)).with_tooltip("HomeNet Watch by DDID").with_icon(icon).build().ok()?;
+    {
+        let ctx = ctx.clone();
+        TrayIconEvent::set_event_handler(Some(move |e: TrayIconEvent| {
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = e {
+                crate::background::show_window(&ctx);
+            }
+        }));
+    }
+    MenuEvent::set_event_handler(Some(move |e: MenuEvent| {
+        if e.id == open_id {
+            crate::background::show_window(&ctx);
+        } else if e.id == pause_id {
+            if let Ok(mut s) = shared.lock() {
+                s.settings.monitoring = !s.settings.monitoring;
+                s.check_now = true;
+                s.dirty = true;
+            }
+            ctx.request_repaint();
+        } else if e.id == quit_id {
+            quit_now(&shared);
+        }
+    }));
+    Some(tray)
 }

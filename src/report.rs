@@ -139,12 +139,18 @@ pub fn weekly_html(s: &Shared) -> String {
     }
     h += "</div>";
 
-    h += "<h2>Alerts</h2><table><tr><th>Type</th><th>This week</th><th>Last week</th></tr>";
+    h += "<h2>Alerts</h2><table><tr><th>Type</th><th>This week</th><th>Last week</th><th>MITRE ATT&amp;CK</th></tr>";
     for (k, (a, b)) in &kinds {
-        h += &format!("<tr><td>{}</td><td>{}</td><td>{}</td></tr>", esc(alert_info(k).title), a, b);
+        let info = alert_info(k);
+        let mitre = if info.mitre.is_empty() {
+            "—".to_string()
+        } else {
+            format!("<a href=\"https://attack.mitre.org/techniques/{}/\" style=\"color:#4c9aff\">{}</a>", info.mitre.replace('.', "/"), esc(&crate::model::mitre_label(info.mitre)))
+        };
+        h += &format!("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>", esc(info.title), a, b, mitre);
     }
     if kinds.is_empty() {
-        h += "<tr><td colspan=3 class=muted>No alerts.</td></tr>";
+        h += "<tr><td colspan=4 class=muted>No alerts.</td></tr>";
     }
     h += "</table>";
 
@@ -167,4 +173,20 @@ pub fn save_weekly(s: &Shared) -> std::io::Result<std::path::PathBuf> {
     let path = dir.join(format!("HomeNetWatch-week-{}.html", chrono::Local::now().format("%Y-%m-%d")));
     std::fs::write(&path, weekly_html(s))?;
     Ok(path)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn mitre_labels() {
+        assert_eq!(crate::model::mitre_label("T1557.002"), "T1557.002 ARP Cache Poisoning (Credential Access, Collection)");
+        assert_eq!(crate::model::mitre_label(""), "");
+        // every technique an alert uses has a name and tactic
+        for k in crate::model::ALERT_KINDS {
+            let m = crate::model::alert_info(k).mitre;
+            if !m.is_empty() {
+                assert!(crate::model::mitre_details(m).is_some(), "missing details for {}", m);
+            }
+        }
+    }
 }

@@ -35,6 +35,8 @@ pub struct Release {
     pub asset_url: Option<String>,
     pub asset_size: u64,
     pub sums_url: Option<String>,
+    /// Every file attached to the release
+    pub asset_names: Vec<String>,
 }
 
 #[derive(Clone, Default)]
@@ -62,14 +64,14 @@ pub fn current() -> (u32, u32, u32) {
     parse_version(env!("CARGO_PKG_VERSION")).unwrap_or((0, 0, 0))
 }
 
-fn fetch_latest() -> Result<Release, String> {
+pub fn fetch_latest() -> Result<Release, String> {
     if repo().is_empty() {
         return Err("This copy was built locally, so it isn't linked to a GitHub repository yet.".into());
     }
     fetch_latest_from(repo())
 }
 
-fn fetch_latest_from(repo: &str) -> Result<Release, String> {
+pub fn fetch_latest_from(repo: &str) -> Result<Release, String> {
     let url = format!("https://api.github.com/repos/{}/releases/latest", repo);
     let r = crate::web::request(&url, crate::web::Opts { method: "GET", timeout_ms: 15000, ..Default::default() })?;
     if r.status == 404 {
@@ -97,6 +99,7 @@ fn fetch_latest_from(repo: &str) -> Result<Release, String> {
         asset_url: asset.as_ref().map(|a| a.0.clone()),
         asset_size: asset.map(|a| a.1).unwrap_or(0),
         sums_url: find("SHA256SUMS.txt").map(|a| a.0),
+        asset_names: assets.iter().filter_map(|a| a.get("name").and_then(|n| n.as_str()).map(String::from)).collect(),
     })
 }
 
@@ -283,4 +286,18 @@ mod live_tests {
         assert_eq!(std::fs::read(&exe).unwrap(), b"newer version");
         let _ = std::fs::remove_dir_all(&dir);
     }
+}
+
+/// What a published release should contain, and whether this one does: (file, present).
+pub fn release_health(rel: &Release) -> Vec<(&'static str, bool)> {
+    [
+        "homenet-watch-windows-x86_64.exe",
+        "homenet-watch-macos-universal",
+        "homenet-watch-linux-x86_64",
+        "SHA256SUMS.txt",
+        "HomeNet-Watch-User-Guide.html",
+    ]
+    .into_iter()
+    .map(|n| (n, rel.asset_names.iter().any(|a| a == n)))
+    .collect()
 }

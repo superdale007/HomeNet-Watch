@@ -79,7 +79,7 @@ pub fn make(s: &Shared, with_traffic: bool) -> Backup {
     Backup {
         created: crate::model::now(),
         app_version: env!("CARGO_PKG_VERSION").into(),
-        settings: s.settings.clone(),
+        settings: Settings { smtp_pass: String::new(), ..s.settings.clone() },
         devices: s
             .devices
             .iter()
@@ -296,6 +296,7 @@ mod tests {
             check_now: false,
             attention: false,
             external_ip: None,
+            window_active: true,
             traffic: Traffic::default(),
             last_gateway: None,
             gateway_mac: None,

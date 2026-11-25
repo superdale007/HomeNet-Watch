@@ -342,7 +342,7 @@ impl App {
                             changed = true;
                         }
                         if !groups.is_empty() {
-                            ui.menu_button("▾", |ui| {
+                            ui.menu_button("Pick", |ui| {
                                 for g in &groups {
                                     if ui.button(g).clicked() {
                                         d.group = g.clone();
@@ -592,9 +592,23 @@ impl App {
                     for (_, sev, msg) in &d.problems {
                         ui.label(RichText::new(msg).size(12.5).color(severity_color(*sev)));
                     }
-                    if ui.link("Open the performance view").clicked() {
-                        open_perf = true;
-                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("Test sign-in now").on_hover_text("Signs in with the settings above right away and tells you what happened").clicked() {
+                            let (ip, sec, out) = (d.ip, d.snmp_security(), self.test_result.clone());
+                            self.toast = Some(("Testing the sign-in…".into(), Instant::now()));
+                            std::thread::spawn(move || {
+                                let msg = match super::checkup::snmp_test(ip, sec) {
+                                    Ok(m) => m,
+                                    Err(e) => format!("Sign-in failed: {}", e),
+                                };
+                                *out.lock().unwrap() = Some(msg);
+                            });
+                            d.perf_last = None; // also refresh the stats now
+                        }
+                        if ui.link("Open the performance view").clicked() {
+                            open_perf = true;
+                        }
+                    });
                 } else if d.kind == DeviceKind::Storage {
                     ui.label(RichText::new("Turn on SNMP in your NAS settings first; the Performance page explains how for Synology, QNAP and UGREEN.").size(12.0).color(MUTED));
                 }
@@ -647,10 +661,18 @@ impl App {
 impl App {
     pub(super) fn map(&mut self, ui: &mut Ui, s: &mut Shared) {
         let mut relayout = false;
-        self.header(ui, s, "Network map", "How your devices connect · drag to move · click for details", |_this, ui, _s| {
+        self.header(ui, s, "Network map", "How your devices connect · drag to move · click for details", |_this, ui, s| {
             if ui.button("✨  Arrange automatically").clicked() {
                 relayout = true;
             }
+            ui.add_space(8.0);
+            for (v, l) in [(2u8, "Room"), (1, "Type"), (0, "None")] {
+                if ui.selectable_label(s.settings.map_group == v, l).clicked() {
+                    s.settings.map_group = v;
+                    s.dirty = true;
+                }
+            }
+            ui.label(RichText::new("Group by").color(MUTED));
         });
         if relayout {
             for d in s.devices.iter_mut() {
@@ -694,10 +716,28 @@ impl App {
         if cols % 2 == 1 {
             cols -= 1; // even, so the trunk line runs between columns
         }
-        let rows = (auto.len() + cols - 1) / cols;
-        let (top_inet, top_router, y0, row_h) = (58.0, 178.0, 318.0, 106.0);
+        // Group the auto-placed devices (by type or room); each group starts on a new row with a heading.
+        let mut groups: Vec<(String, Vec<u64>)> = vec![];
+        for id in &auto {
+            let Some(d) = s.device(*id) else { continue };
+            let key = match s.settings.map_group {
+                1 => d.kind.label().to_string(),
+                2 => if d.group.trim().is_empty() { "No room set".to_string() } else { d.group.trim().to_string() },
+                _ => String::new(),
+            };
+            match groups.iter_mut().find(|g| g.0 == key) {
+                Some(g) => g.1.push(*id),
+                None => groups.push((key, vec![*id])),
+            }
+        }
+        if s.settings.map_group == 2 {
+            groups.sort_by(|a, b| (a.0 == "No room set", a.0.to_lowercase()).cmp(&(b.0 == "No room set", b.0.to_lowercase())));
+        }
+        let group_gap = if s.settings.map_group == 0 { 0.0 } else { 34.0 };
+        let rows: usize = groups.iter().map(|g| (g.1.len() + cols - 1) / cols).sum();
+        let (top_inet, top_router, y0, row_h) = (58.0, 178.0, 318.0 + group_gap, 106.0);
         let dragged_bottom = s.devices.iter().filter_map(|d| d.map_pos).map(|p| p[1] + 70.0).fold(0.0f32, f32::max);
-        let content_h = (y0 + rows as f32 * row_h).max(avail.y - 4.0).max(dragged_bottom);
+        let content_h = (y0 + rows as f32 * row_h + groups.len() as f32 * group_gap).max(avail.y - 4.0).max(dragged_bottom);
         let cellw = (w - 2.0 * margin) / cols as f32;
 
         let mut clicked: Option<u64> = None;
@@ -733,12 +773,26 @@ impl App {
             if let Some(id) = router_id {
                 pos.entry(id).or_insert(pos2(cx, rect.top() + top_router));
             }
-            for (i, id) in auto.iter().enumerate() {
-                let row = i / cols;
-                let col = i % cols;
-                let in_row = (auto.len() - row * cols).min(cols);
-                let x0 = rect.left() + margin + (cols - in_row) as f32 * cellw / 2.0;
-                pos.insert(*id, pos2(x0 + (col as f32 + 0.5) * cellw, rect.top() + y0 + row as f32 * row_h));
+            let mut headings: Vec<(String, f32)> = vec![];
+            let mut row_base = 0usize;
+            for (gi, (label, ids)) in groups.iter().enumerate() {
+                let gy = rect.top() + y0 + row_base as f32 * row_h + gi as f32 * group_gap;
+                if !label.is_empty() {
+                    headings.push((format!("{}  ·  {}", label, ids.len()), gy - 72.0));
+                }
+                for (i, id) in ids.iter().enumerate() {
+                    let row = i / cols;
+                    let col = i % cols;
+                    let in_row = (ids.len() - row * cols).min(cols);
+                    let x0 = rect.left() + margin + (cols - in_row) as f32 * cellw / 2.0;
+                    pos.insert(*id, pos2(x0 + (col as f32 + 0.5) * cellw, gy + row as f32 * row_h));
+                }
+                row_base += (ids.len() + cols - 1) / cols;
+            }
+            for (h, y) in &headings {
+                let r = egui::Rect::from_min_size(pos2(rect.left() + margin - 6.0, *y - 11.0), vec2(w - 2.0 * margin + 12.0, 22.0));
+                p.rect_filled(r, 6.0, CARD.linear_multiply(0.9));
+                p.text(pos2(r.left() + 10.0, r.center().y), Align2::LEFT_CENTER, h, FontId::proportional(12.5), GOLD);
             }
             let hub = router_id.and_then(|id| pos.get(&id).cloned()).unwrap_or(pos2(cx, rect.top() + top_router));
 
@@ -853,7 +907,16 @@ impl App {
 impl App {
     pub(super) fn alerts(&mut self, ui: &mut Ui, s: &mut Shared) {
         let open = s.unacked();
-        self.header(ui, s, "Alerts", &format!("{} waiting for you to look at", open), |_this, ui, s| {
+        self.header(ui, s, "Alerts", &format!("{} waiting for you to look at", open), |this, ui, s| {
+            if ui.button("💾  Save as spreadsheet").on_hover_text("All alerts with type, explanation and MITRE ATT&CK technique, as a CSV file in Documents").clicked() {
+                this.toast = Some((
+                    match export_alerts_csv(s) {
+                        Ok(p) => format!("Saved {}", p.display()),
+                        Err(e) => format!("Couldn't save: {}", e),
+                    },
+                    Instant::now(),
+                ));
+            }
             if ui.button("🗑  Clear history").clicked() {
                 s.events.clear();
                 s.dirty = true;
@@ -875,10 +938,12 @@ impl App {
             if self.alerts_tab == 0 {
                 let crit = s.events.iter().filter(|e| e.severity == Severity::Critical && !e.muted).count();
                 let all = s.events.iter().filter(|e| !e.muted).count();
+                let security = s.events.iter().filter(|e| !e.muted && !e.mitre().is_empty()).count();
                 for (f, l) in [
                     (AlertFilter::All, format!("All ({})", all)),
                     (AlertFilter::Open, format!("Not seen yet ({})", open)),
                     (AlertFilter::Critical, format!("Critical ({})", crit)),
+                    (AlertFilter::Security, format!("Security ({})", security)),
                 ] {
                     if ui.selectable_label(self.alert_filter == f, l).clicked() {
                         self.alert_filter = f;
@@ -907,6 +972,7 @@ impl App {
                     AlertFilter::All => true,
                     AlertFilter::Open => !e.acknowledged,
                     AlertFilter::Critical => e.severity == Severity::Critical,
+                    AlertFilter::Security => !e.mitre().is_empty(),
                 }) {
                     any = true;
                     let w = ui.available_width();
@@ -934,7 +1000,11 @@ impl App {
                     p.text(
                         rect.left_center() + vec2(58.0, 10.0),
                         Align2::LEFT_CENTER,
-                        format!("{} · {} · {}", e.device_name, fmt_time(e.t), e.severity.label()),
+                        if e.mitre().is_empty() {
+                            format!("{} · {} · {}", e.device_name, fmt_time(e.t), e.severity.label())
+                        } else {
+                            format!("{} · {} · {} · MITRE {}", e.device_name, fmt_time(e.t), e.severity.label(), e.mitre())
+                        },
                         FontId::proportional(11.5),
                         MUTED,
                     );
@@ -957,7 +1027,7 @@ impl App {
                             e.opened = true;
                         }
                     }
-                    child.label(RichText::new(if self.open_alert == Some(e.id) { "▾" } else { "▸" }).color(FAINT));
+                    child.label(RichText::new(if self.open_alert == Some(e.id) { "hide" } else { "details" }).size(11.5).color(FAINT));
                     if self.open_alert == Some(e.id) {
                         let info = alert_info(if e.kind.is_empty() { infer_kind(&e.message) } else { &e.kind });
                         egui::Frame::new().fill(CARD_HI).corner_radius(8.0).inner_margin(12.0).show(ui, |ui| {
@@ -971,7 +1041,11 @@ impl App {
                             ui.horizontal(|ui| {
                                 if !info.mitre.is_empty() {
                                     let url = format!("https://attack.mitre.org/techniques/{}/", info.mitre.replace('.', "/"));
-                                    if ui.link(format!("MITRE ATT&CK {}", info.mitre)).on_hover_text("The matching technique in the public MITRE ATT&CK catalogue").clicked() {
+                                    if ui
+                                        .link(format!("MITRE ATT&CK {}", mitre_label(info.mitre)))
+                                        .on_hover_text("The matching technique in the public MITRE ATT&CK catalogue; in brackets, the attacker's goal (tactic)")
+                                        .clicked()
+                                    {
                                         crate::util::open(&url);
                                     }
                                     ui.add_space(10.0);
@@ -1021,8 +1095,8 @@ impl App {
         flow_card(ui, "ALERT TUNING · LAST 30 DAYS", |ui| {
             ui.label(RichText::new("Types you never open are good candidates to mute. Muted alerts are still recorded, just hidden and silent.").size(12.5).color(MUTED));
             ui.add_space(8.0);
-            egui::Grid::new("tuning").num_columns(5).spacing([28.0, 8.0]).striped(true).show(ui, |ui| {
-                for h in ["Alert type", "Received", "Opened", "", "Mute"] {
+            egui::Grid::new("tuning").num_columns(6).spacing([28.0, 8.0]).striped(true).show(ui, |ui| {
+                for h in ["Alert type", "MITRE ATT&CK", "Received", "Opened", "", "Mute"] {
                     ui.label(RichText::new(h).size(12.5).color(MUTED));
                 }
                 ui.end_row();
@@ -1032,6 +1106,14 @@ impl App {
                     let opened = evs.iter().filter(|e| e.opened).count();
                     let info = alert_info(kind);
                     ui.label(info.title).on_hover_text(info.explain);
+                    match mitre_details(info.mitre) {
+                        Some((name, tactic)) => {
+                            ui.label(RichText::new(info.mitre).color(BLUE)).on_hover_text(format!("{}\nTactic: {}", name, tactic));
+                        }
+                        None => {
+                            ui.label(RichText::new("—").color(FAINT));
+                        }
+                    }
                     ui.label(n.to_string());
                     ui.label(if n == 0 { "—".to_string() } else { format!("{} ({:.0}%)", opened, opened as f32 * 100.0 / n as f32) });
                     if n >= 5 && opened == 0 {
@@ -1225,6 +1307,11 @@ impl App {
         let mut scan = false;
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
             ui.set_max_width(800.0);
+            egui::Frame::new().fill(CARD).stroke(Stroke::new(1.0f32, BLUE.linear_multiply(0.5))).corner_radius(10.0).inner_margin(14.0).show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                self.checkup(ui, s);
+            });
+            ui.add_space(12.0);
             flow_card(ui, "CHECKING", |ui| {
                 egui::Grid::new("chk").num_columns(2).spacing([24.0, 12.0]).show(ui, |ui| {
                     ui.label("Check each device every");
@@ -1250,13 +1337,28 @@ impl App {
                     ui.label("New devices");
                     ui.checkbox(&mut s.settings.alert_new_devices, "Alert me when a new device joins");
                     ui.end_row();
+                    ui.label("Slow alerts");
+                    ui.checkbox(&mut s.settings.slow_important_only, "Only for the router, internet, NAS and network gear");
+                    ui.end_row();
                 });
                 ui.add_space(4.0);
                 ui.label(
-                    RichText::new("Phones, tablets and laptops come and go, so their offline alerts start switched off. You can turn them on for each device.")
+                    RichText::new("Phones, tablets, laptops, TVs, speakers and game consoles sleep or leave the house, so their \"went offline\" alerts start switched off. You can turn them on for each device.")
                         .size(12.0)
                         .color(MUTED),
                 );
+                if ui.button("Apply these quieter defaults to all my devices").on_hover_text("Sets each device's \"Alert me\" switch to the default for its type").clicked() {
+                    let mut changed = 0;
+                    for d in s.devices.iter_mut() {
+                        let want = d.kind.alerts_by_default();
+                        if d.alerts != want {
+                            d.alerts = want;
+                            changed += 1;
+                        }
+                    }
+                    s.dirty = true;
+                    self.toast = Some((format!("Updated alerts on {} devices.", changed), Instant::now()));
+                }
             });
             ui.add_space(12.0);
             flow_card(ui, "WHEN SOMETHING GOES WRONG", |ui| {
@@ -1266,6 +1368,9 @@ impl App {
                     ui.end_row();
                     ui.label("Taskbar");
                     ui.checkbox(&mut s.settings.flash, "Flash the app in the taskbar (bounce it in the Dock on a Mac)");
+                    ui.end_row();
+                    ui.label("Pop-ups");
+                    ui.checkbox(&mut s.settings.notify_desktop, "Show a notification on this computer when the window isn't in front");
                     ui.end_row();
                     ui.label("Quiet hours");
                     ui.horizontal(|ui| {
@@ -1279,6 +1384,8 @@ impl App {
                 ui.add_space(4.0);
                 ui.label(RichText::new("Alerts are always recorded, and a red bar at the top shows anything that went offline until you've seen it.").size(12.0).color(MUTED));
             });
+            ui.add_space(12.0);
+            self.settings_away(ui, s);
             ui.add_space(12.0);
             flow_card(ui, "NAS & SYSTEM STATS", |ui| {
                 egui::Grid::new("perfset").num_columns(2).spacing([24.0, 12.0]).show(ui, |ui| {
@@ -1576,4 +1683,34 @@ impl App {
                 });
         }
     }
+}
+
+/// All alerts as a spreadsheet (CSV) in Documents, including MITRE ATT&CK details.
+fn export_alerts_csv(s: &Shared) -> std::io::Result<PathBuf> {
+    let dir = crate::util::documents_dir();
+    std::fs::create_dir_all(&dir)?;
+    let path = dir.join(format!("HomeNetWatch-alerts-{}.csv", chrono::Local::now().format("%Y%m%d-%H%M")));
+    let q = |v: &str| format!("\"{}\"", v.replace('"', "\"\""));
+    let mut out = String::from("When,Severity,Device,Alert type,Message,Seen,Muted,MITRE technique,Technique name,Tactic,What it means,What to do\n");
+    for e in &s.events {
+        let info = alert_info(e.kind_or_guess());
+        let (tname, tactic) = mitre_details(info.mitre).unwrap_or(("", ""));
+        out += &format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            q(&fmt_time(e.t)),
+            e.severity.label(),
+            q(&e.device_name),
+            q(info.title),
+            q(&e.message),
+            if e.acknowledged { "yes" } else { "no" },
+            if e.muted { "yes" } else { "no" },
+            info.mitre,
+            q(tname),
+            q(tactic),
+            q(info.explain),
+            q(info.action)
+        );
+    }
+    std::fs::write(&path, out)?;
+    Ok(path)
 }

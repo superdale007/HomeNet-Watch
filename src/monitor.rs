@@ -321,7 +321,9 @@ fn apply_result(s: &mut Shared, r: JobResult) {
     // (Wi-Fi gadgets that doze often take a few hundred ms to answer once.)
     let recent: Vec<f32> = d.history.iter().rev().take(3).filter_map(|s| s.ms).collect();
     // A presence-only answer has no meaningful response time, so it never counts as slow.
-    let slow = r.ping.or(best_port).is_some() && recent.len() == 3 && recent.iter().all(|l| *l > settings.slow_ms as f32);
+    // With "important devices only", a dozing TV or smart plug being slow is not a problem.
+    let slow_counts = !settings.slow_important_only || d.kind.important();
+    let slow = slow_counts && r.ping.or(best_port).is_some() && recent.len() == 3 && recent.iter().all(|l| *l > settings.slow_ms as f32);
     let new_status = if reachable {
         d.ok_checks += 1;
         d.last_seen = Some(t);
